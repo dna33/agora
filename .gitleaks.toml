@@ -1,0 +1,9 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allow local placeholders"
+paths = [
+  '''\.env\.example$''',
+  '''postman/.*\.json$'''
+]

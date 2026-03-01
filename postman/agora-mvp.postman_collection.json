@@ -1,0 +1,280 @@
+{
+  "info": {
+    "name": "Agora MVP",
+    "description": "Collection para probar el backend MVP de Agora (provider-agnostic).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Ingest (Text)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Cruzar la Alameda de noche se siente inseguro y faltan cruces claros.\",\n  \"place_code\": \"alameda-santiago\",\n  \"latitude\": -33.444,\n  \"longitude\": -70.66,\n  \"presence_mode\": \"walking\",\n  \"place_reference\": \"Alameda con Santa Rosa\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/ingest", "host": ["{{base_url}}"], "path": ["ingest"]}
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('status is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "let jsonData = {};",
+              "try { jsonData = pm.response.json(); } catch (e) {}",
+              "if (jsonData.feedback_link) {",
+              "  const parts = jsonData.feedback_link.split('/');",
+              "  const token = parts[parts.length - 1];",
+              "  pm.collectionVariables.set('feedback_token', token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feedback View",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/feedback/{{feedback_token}}",
+          "host": ["{{base_url}}"],
+          "path": ["feedback", "{{feedback_token}}"]
+        }
+      }
+    },
+    {
+      "name": "Feedback Patch",
+      "request": {
+        "method": "PATCH",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"primary_topic\": \"safety\",\n  \"desired_future\": \"safer_nights\",\n  \"summary_line\": \"Se percibe inseguridad nocturna y se piden cruces e iluminación mejores.\",\n  \"allow_public_quote\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/feedback/{{feedback_token}}",
+          "host": ["{{base_url}}"],
+          "path": ["feedback", "{{feedback_token}}"]
+        }
+      }
+    },
+    {
+      "name": "WhatsApp Webhook (Generic)",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {"key": "Body", "value": "Desde WhatsApp: falta sombra para esperar en verano.", "type": "text"},
+            {"key": "Latitude", "value": "-33.445", "type": "text"},
+            {"key": "Longitude", "value": "-70.662", "type": "text"},
+            {"key": "Address", "value": "Alameda con San Antonio", "type": "text"}
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/integrations/whatsapp/webhook",
+          "host": ["{{base_url}}"],
+          "path": ["integrations", "whatsapp", "webhook"]
+        }
+      }
+    },
+    {
+      "name": "WhatsApp Meta Verify (GET)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/integrations/whatsapp/meta/webhook?hub.mode=subscribe&hub.verify_token={{meta_verify_token}}&hub.challenge=12345",
+          "host": ["{{base_url}}"],
+          "path": ["integrations", "whatsapp", "meta", "webhook"],
+          "query": [
+            {"key": "hub.mode", "value": "subscribe"},
+            {"key": "hub.verify_token", "value": "{{meta_verify_token}}"},
+            {"key": "hub.challenge", "value": "12345"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "WhatsApp Meta Webhook (POST)",
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"object\": \"whatsapp_business_account\",\n  \"entry\": [\n    {\n      \"changes\": [\n        {\n          \"field\": \"messages\",\n          \"value\": {\n            \"messages\": [\n              {\n                \"type\": \"text\",\n                \"text\": {\n                  \"body\": \"Hola desde Meta Cloud API\"\n                }\n              }\n            ]\n          }\n        }\n      ]\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/integrations/whatsapp/meta/webhook",
+          "host": ["{{base_url}}"],
+          "path": ["integrations", "whatsapp", "meta", "webhook"]
+        }
+      }
+    },
+    {
+      "name": "Twilio WhatsApp Webhook",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {"key": "Body", "value": "Twilio WhatsApp: cruces más seguros en Alameda.", "type": "text"},
+            {"key": "From", "value": "whatsapp:+14155238886", "type": "text"},
+            {"key": "WaId", "value": "56912345678", "type": "text"},
+            {"key": "Latitude", "value": "-33.445", "type": "text"},
+            {"key": "Longitude", "value": "-70.662", "type": "text"},
+            {"key": "Address", "value": "Alameda con San Antonio", "type": "text"}
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/integrations/whatsapp/twilio/webhook",
+          "host": ["{{base_url}}"],
+          "path": ["integrations", "whatsapp", "twilio", "webhook"]
+        }
+      }
+    },
+    {
+      "name": "Admin Create Place",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"valparaiso-centro\",\n  \"name\": \"Centro de Valparaiso\",\n  \"city\": \"Valparaiso\",\n  \"country\": \"Chile\"\n}"
+        },
+        "url": {"raw": "{{base_url}}/admin/places", "host": ["{{base_url}}"], "path": ["admin", "places"]}
+      }
+    },
+    {
+      "name": "Admin List Places",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}],
+        "url": {"raw": "{{base_url}}/admin/places", "host": ["{{base_url}}"], "path": ["admin", "places"]}
+      }
+    },
+    {
+      "name": "Admin Create Segment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Plaza Victoria\",\n  \"order_index\": 1,\n  \"min_lat\": -33.046,\n  \"max_lat\": -33.044,\n  \"min_lon\": -71.627,\n  \"max_lon\": -71.624\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/admin/places/valparaiso-centro/segments",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "places", "valparaiso-centro", "segments"]
+        }
+      }
+    },
+    {
+      "name": "Admin List Segments",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}],
+        "url": {
+          "raw": "{{base_url}}/admin/places/valparaiso-centro/segments",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "places", "valparaiso-centro", "segments"]
+        }
+      }
+    },
+    {
+      "name": "Admin Pipeline Metrics",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}],
+        "url": {
+          "raw": "{{base_url}}/admin/metrics/pipeline?period_days=7",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "metrics", "pipeline"],
+          "query": [{"key": "period_days", "value": "7"}]
+        }
+      }
+    },
+    {
+      "name": "Admin Conversation Metrics",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}],
+        "url": {
+          "raw": "{{base_url}}/admin/metrics/conversation?period_days=7",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "metrics", "conversation"],
+          "query": [{"key": "period_days", "value": "7"}]
+        }
+      }
+    },
+    {
+      "name": "Admin Review Messages",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}],
+        "url": {
+          "raw": "{{base_url}}/admin/messages/review?limit=50&offset=0",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "messages", "review"],
+          "query": [
+            {"key": "limit", "value": "50"},
+            {"key": "offset", "value": "0"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Admin Review CSV",
+      "request": {
+        "method": "GET",
+        "header": [{"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}],
+        "url": {
+          "raw": "{{base_url}}/admin/messages/review.csv?limit=1000",
+          "host": ["{{base_url}}"],
+          "path": ["admin", "messages", "review.csv"],
+          "query": [{"key": "limit", "value": "1000"}]
+        }
+      }
+    },
+    {
+      "name": "Run Cluster Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Admin-Api-Key", "value": "{{admin_api_key}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\n  \"similarity_threshold\": 0.7,\n  \"min_cluster_size\": 2\n}"},
+        "url": {"raw": "{{base_url}}/admin/jobs/cluster", "host": ["{{base_url}}"], "path": ["admin", "jobs", "cluster"]}
+      }
+    }
+  ],
+  "variable": [{"key": "feedback_token", "value": ""}]
+}
