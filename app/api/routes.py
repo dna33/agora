@@ -696,6 +696,8 @@ def _render_admin_sentiment_audit_page(sample_size: int = 10) -> str:
       <div class="row">
         <label for="sample_size">Muestra</label>
         <input id="sample_size" type="number" min="1" max="100" value="{size}" />
+        <label for="reviewer_tag">Tag admin</label>
+        <input id="reviewer_tag" type="text" maxlength="64" placeholder="ej: demian" />
         <button id="load_sample">Cargar muestra</button>
         <button id="run_eval">Comparar</button>
       </div>
@@ -770,10 +772,11 @@ def _render_admin_sentiment_audit_page(sample_size: int = 10) -> str:
         message_id: sel.getAttribute("data-message-id"),
         manual_label: sel.value
       }}));
+      const reviewerTag = String(document.getElementById("reviewer_tag").value || "").trim();
       const res = await fetch("/admin/sentiment/audit/evaluate", {{
         method: "POST",
         headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{ items }})
+        body: JSON.stringify({{ reviewer_tag: reviewerTag || null, items }})
       }});
       if (!res.ok) {{
         document.getElementById("result").textContent = "Error en comparacion.";
@@ -781,7 +784,7 @@ def _render_admin_sentiment_audit_page(sample_size: int = 10) -> str:
       }}
       const data = await res.json();
       document.getElementById("result").textContent =
-        `Comparados: ${{data.compared_count}} | Modelo: ${{data.model_accuracy_pct}}% | Heuristica: ${{data.heuristic_accuracy_pct}}%`;
+        `Review: ${{data.review_id || "-"}} | Tag: ${{data.reviewer_tag || "-"}} | Comparados: ${{data.compared_count}} | Modelo: ${{data.model_accuracy_pct}}% | Heuristica: ${{data.heuristic_accuracy_pct}}%`;
     }}
 
     document.getElementById("load_sample").addEventListener("click", loadSample);
@@ -1192,7 +1195,9 @@ def admin_sentiment_audit_evaluate(
     payload: SentimentAuditEvaluateRequest,
     db: Session = Depends(get_db),
 ) -> SentimentAuditEvaluateResponse:
-    return evaluate_sentiment_audit(db, payload)
+    result = evaluate_sentiment_audit(db, payload)
+    db.commit()
+    return result
 
 
 @admin_router.get("/places/{place_id}/map/heatmap", response_model=HeatmapResponse)

@@ -233,3 +233,17 @@ class TaxonomyCandidate(Base):
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+
+class SentimentAuditReview(Base):
+    __tablename__ = "sentiment_audit_reviews"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    reviewer_tag: Mapped[str] = mapped_column(String(64), index=True)
+    compared_count: Mapped[int] = mapped_column(Integer, default=0)
+    model_matches: Mapped[int] = mapped_column(Integer, default=0)
+    heuristic_matches: Mapped[int] = mapped_column(Integer, default=0)
+    model_accuracy_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    heuristic_accuracy_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    payload_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -10,6 +10,7 @@ from app.models.models import (
     MessageClusterAssignment,
     OpenAICallLog,
     Place,
+    SentimentAuditReview,
     TaxonomyCandidate,
 )
 
@@ -25,5 +26,6 @@ __all__ = [
     "ConversationEntry",
     "AnalysisCluster",
     "MessageClusterAssignment",
+    "SentimentAuditReview",
     "TaxonomyCandidate",
 ]

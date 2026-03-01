@@ -1,7 +1,7 @@
 from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
-from app.models import AnalysisVersion, Message
+from app.models import AnalysisVersion, Message, SentimentAuditReview
 from app.schemas.sentiment_audit import (
     SentimentAuditEvaluateRequest,
     SentimentAuditEvaluateResponse,
@@ -119,8 +119,12 @@ def get_sentiment_audit_sample(db: Session, sample_size: int = 10) -> SentimentA
 
 
 def evaluate_sentiment_audit(db: Session, payload: SentimentAuditEvaluateRequest) -> SentimentAuditEvaluateResponse:
+    reviewer_tag = (payload.reviewer_tag or "").strip()[:64] or "anon-admin"
+
     if not payload.items:
         return SentimentAuditEvaluateResponse(
+            review_id=None,
+            reviewer_tag=reviewer_tag,
             compared_count=0,
             model_matches=0,
             heuristic_matches=0,
@@ -181,6 +185,8 @@ def evaluate_sentiment_audit(db: Session, payload: SentimentAuditEvaluateRequest
 
     if compared == 0:
         return SentimentAuditEvaluateResponse(
+            review_id=None,
+            reviewer_tag=reviewer_tag,
             compared_count=0,
             model_matches=0,
             heuristic_matches=0,
@@ -188,10 +194,28 @@ def evaluate_sentiment_audit(db: Session, payload: SentimentAuditEvaluateRequest
             heuristic_accuracy_pct=0.0,
         )
 
-    return SentimentAuditEvaluateResponse(
+    model_acc = round((model_matches / compared) * 100, 2)
+    heuristic_acc = round((heuristic_matches / compared) * 100, 2)
+    review = SentimentAuditReview(
+        reviewer_tag=reviewer_tag,
         compared_count=compared,
         model_matches=model_matches,
         heuristic_matches=heuristic_matches,
-        model_accuracy_pct=round((model_matches / compared) * 100, 2),
-        heuristic_accuracy_pct=round((heuristic_matches / compared) * 100, 2),
+        model_accuracy_pct=model_acc,
+        heuristic_accuracy_pct=heuristic_acc,
+        payload_json={
+            "items": [{"message_id": i.message_id, "manual_label": i.manual_label} for i in payload.items],
+        },
+    )
+    db.add(review)
+    db.flush()
+
+    return SentimentAuditEvaluateResponse(
+        review_id=review.id,
+        reviewer_tag=reviewer_tag,
+        compared_count=compared,
+        model_matches=model_matches,
+        heuristic_matches=heuristic_matches,
+        model_accuracy_pct=model_acc,
+        heuristic_accuracy_pct=heuristic_acc,
     )

@@ -20,10 +20,13 @@ class SentimentAuditManualItem(BaseModel):
 
 
 class SentimentAuditEvaluateRequest(BaseModel):
+    reviewer_tag: str | None = Field(default=None, max_length=64)
     items: list[SentimentAuditManualItem]
 
 
 class SentimentAuditEvaluateResponse(BaseModel):
+    review_id: str | None = None
+    reviewer_tag: str | None = None
     compared_count: int
     model_matches: int
     heuristic_matches: int

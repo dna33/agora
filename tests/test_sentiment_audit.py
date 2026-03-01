@@ -21,6 +21,7 @@ def test_sentiment_audit_sample_and_evaluate(client, monkeypatch):
     assert "heuristic_label" in sample["items"][0]
 
     payload = {
+        "reviewer_tag": "demian",
         "items": [
             {"message_id": item["message_id"], "manual_label": item["heuristic_label"]}
             for item in sample["items"]
@@ -30,6 +31,8 @@ def test_sentiment_audit_sample_and_evaluate(client, monkeypatch):
     assert eval_res.status_code == 200
     out = eval_res.json()
     assert out["compared_count"] >= 2
+    assert out["reviewer_tag"] == "demian"
+    assert out["review_id"]
     assert "model_accuracy_pct" in out
     assert "heuristic_accuracy_pct" in out
 
